@@ -25,13 +25,8 @@
                 step: 1,
                 apiKey: '',
                 showSettings: false,
-                showGuide: false,
-                guideStep: 1,
-                
-                // New Sandbox Warning State
                 showSandboxWarning: false,
-                pendingAction: null, // Stores the function intended to run (e.g. 'role' or 'template')
-
+                pendingAction: null,
                 isUsingAI: false,
                 isLoading: false,
                 
@@ -50,9 +45,13 @@
                     format: 'LinkedIn Post',
                     customFormat: ''
                 },
+                
+                // Gap Analysis Data
+                gapWarning: false,
+                gapMessage: '',
 
                 init() {
-                    console.log("Gem Wizard v18 Initialized");
+                    console.log("Gem Wizard v20 Initialized");
                     const savedKey = localStorage.getItem('gemini_api_key');
                     if (savedKey) {
                         this.apiKey = savedKey;
@@ -79,6 +78,34 @@
                     alert("API Key Removed. Returning to Sandbox Mode.");
                 },
 
+                // --- FILE UPLOAD LOGIC (Real) ---
+                triggerFileUpload() {
+                    document.getElementById('fileInput').click();
+                },
+
+                handleFiles(event) {
+                    const uploadedFiles = event.target.files;
+                    if (uploadedFiles.length > 0) {
+                        for (let i = 0; i < uploadedFiles.length; i++) {
+                            const name = uploadedFiles[i].name;
+                            // Prevent duplicates
+                            if (!this.gem.files.includes(name)) {
+                                this.gem.files.push(name);
+                            }
+                        }
+                        if (this.isUsingAI) {
+                            this.runGapAnalysisAI();
+                        }
+                    }
+                },
+
+                removeFile(index) {
+                    this.gem.files.splice(index, 1);
+                    if (this.isUsingAI) {
+                        this.runGapAnalysisAI();
+                    }
+                },
+
                 // --- HELPERS ---
                 getTone() {
                     return this.generator.tone === 'Custom' ? this.generator.customTone : this.generator.tone;
@@ -91,11 +118,9 @@
                 // --- WARNING MODAL LOGIC ---
                 triggerGeneration(type) {
                     if (this.isUsingAI) {
-                        // If Pro Mode, go straight to AI
                         if (type === 'role') this.generateRoleWithAI();
                         if (type === 'template') this.generateTemplateWithAI();
                     } else {
-                        // If Sandbox, show warning first
                         this.pendingAction = type;
                         this.showSandboxWarning = true;
                     }
@@ -103,7 +128,6 @@
 
                 confirmSandbox() {
                     this.showSandboxWarning = false;
-                    // Run the pending action with local JS templates
                     if (this.pendingAction === 'role') this.generateRoleWithJS();
                     if (this.pendingAction === 'template') this.generateTemplateWithJS();
                     this.pendingAction = null;
@@ -112,7 +136,7 @@
                 switchToPro() {
                     this.showSandboxWarning = false;
                     this.showSettings = true;
-                    this.pendingAction = null; // Clear pending action, user needs to set key first
+                    this.pendingAction = null; 
                 },
 
                 // --- AI LOGIC: KNOWLEDGE LIBRARIAN ---
@@ -163,7 +187,15 @@ OUTPUT FORMAT (Markdown List):
                 },
 
                 // --- AI / TEMPLATE GENERATION ---
-                // Replaced direct calls with triggerGeneration() wrapper above
+                async autoGenerateRole() {
+                    if (this.isUsingAI) await this.generateRoleWithAI();
+                    else this.generateRoleWithJS();
+                },
+
+                async generateTemplate() {
+                    if (this.isUsingAI) await this.generateTemplateWithAI();
+                    else this.generateTemplateWithJS();
+                },
 
                 // Branch A: Local Templates
                 generateRoleWithJS() {
@@ -477,11 +509,21 @@ ${this.gem.instructions}
             </h1>
             
             <p class="mt-4 max-w-2xl mx-auto text-xl text-slate-400">
-                Most marketers use AI like a <strong>generic intern</strong>. <br/>
-                Learn to build <strong>Custom Gems</strong> that act like your best senior specialists.
+                Designed for <strong>Google Gemini</strong>, but this 6-Part Framework works perfectly for <br/>
+                <strong>ChatGPT Custom GPTs</strong> and <strong>Claude Projects</strong> too.
             </p>
+        </div>
+    </section>
 
-            <div class="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto" x-data="{ activeSide: 'right' }">
+    <!-- Part 1.5: The Transformation (Moved here as requested) -->
+    <section class="py-16 bg-slate-950 border-t border-slate-800 relative">
+        <div class="max-w-5xl mx-auto px-4 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold mb-12 leading-tight">
+                Most marketers use AI like a <span class="text-slate-400 border-b-2 border-slate-600">generic intern</span>. <br/>
+                Learn to build <span class="text-cyan-400 border-b-2 border-cyan-500">Custom Gems</span> that act like your best senior specialists.
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8" x-data="{ activeSide: 'right' }">
                 <!-- Generalist -->
                 <div @mouseenter="activeSide = 'left'" :class="activeSide === 'left' ? 'border-red-500/50 bg-red-900/10' : 'border-slate-800 bg-slate-800/50'" class="p-8 rounded-2xl border transition-all duration-300 cursor-default">
                     <div class="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mb-4 mx-auto text-3xl"><i class="fa-solid fa-robot text-slate-400"></i></div>
@@ -638,7 +680,7 @@ ${this.gem.instructions}
             <div class="mb-10 flex items-end justify-between">
                 <div>
                     <h2 class="text-3xl md:text-5xl font-bold text-white">Gem Builder Wizard</h2>
-                    <p class="text-cyan-400 mt-2 font-mono text-sm">v18.0 // Sandbox Warning Enabled</p>
+                    <p class="text-cyan-400 mt-2 font-mono text-sm">v20.0 // Ready to Build</p>
                 </div>
                 <!-- API Settings Button -->
                 <div class="bg-slate-800 rounded-full px-4 py-2 border border-slate-700 flex items-center gap-3 cursor-pointer hover:bg-slate-700 transition" @click="showSettings = !showSettings">
@@ -668,7 +710,7 @@ ${this.gem.instructions}
                 </div>
             </div>
 
-            <!-- SANDBOX WARNING MODAL (NEW) -->
+            <!-- SANDBOX WARNING MODAL -->
             <div x-show="showSandboxWarning" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md" style="display: none;">
                 <div class="bg-slate-900 p-8 rounded-2xl border border-slate-700 max-w-md w-full shadow-2xl relative animate-fade-in border-t-4 border-t-amber-500">
                     <div class="mb-6 text-center">
