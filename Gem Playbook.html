@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Ultimate Marketing Gem Playbook</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+    <!-- CORE LOGIC (Hybrid Engine + Global State) -->
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('gemBuilder', () => ({
+                // Navigation State
+                currentSection: 'hero',
+                
+                // Wizard State
+                step: 1,
+                apiKey: '',
+                showSettings: false,
+                showGuide: false,
+                guideStep: 1,
+                
+                // New Sandbox Warning State
+                showSandboxWarning: false,
+                pendingAction: null, // Stores the function intended to run (e.g. 'role' or 'template')
+
+                isUsingAI: false,
+                isLoading: false,
+                
+                gem: {
+                    name: '',
+                    description: '', 
+                    role: '',
+                    task: '',
+                    mode: 'Auto-Pilot', 
+                    instructions: '',
+                    knowledgeRecommendation: '' 
+                },
+                generator: {
+                    tone: 'Professional',
+                    customTone: '',
+                    format: 'LinkedIn Post',
+                    customFormat: ''
+                },
+
+                init() {
+                    console.log("Gem Wizard v18 Initialized");
+                    const savedKey = localStorage.getItem('gemini_api_key');
+                    if (savedKey) {
+                        this.apiKey = savedKey;
+                        this.isUsingAI = true;
+                    }
+                },
+
+                // --- SETTINGS LOGIC ---
+                saveKey() {
+                    if (this.apiKey.startsWith('AIza')) {
+                        localStorage.setItem('gemini_api_key', this.apiKey);
+                        this.isUsingAI = true;
+                        this.showSettings = false;
+                        alert("API Key Saved! Pro Mode Activated.");
+                    } else {
+                        alert("Invalid Key Format. It should start with 'AIza'.");
+                    }
+                },
+
+                clearKey() {
+                    localStorage.removeItem('gemini_api_key');
+                    this.apiKey = '';
+                    this.isUsingAI = false;
+                    alert("API Key Removed. Returning to Sandbox Mode.");
+                },
+
+                // --- HELPERS ---
+                getTone() {
+                    return this.generator.tone === 'Custom' ? this.generator.customTone : this.generator.tone;
+                },
+
+                getFormat() {
+                    return this.generator.format === 'Custom' ? this.generator.customFormat : this.generator.format;
+                },
+
+                // --- WARNING MODAL LOGIC ---
+                triggerGeneration(type) {
+                    if (this.isUsingAI) {
+                        // If Pro Mode, go straight to AI
+                        if (type === 'role') this.generateRoleWithAI();
+                        if (type === 'template') this.generateTemplateWithAI();
+                    } else {
+                        // If Sandbox, show warning first
+                        this.pendingAction = type;
+                        this.showSandboxWarning = true;
+                    }
+                },
+
+                confirmSandbox() {
+                    this.showSandboxWarning = false;
+                    // Run the pending action with local JS templates
+                    if (this.pendingAction === 'role') this.generateRoleWithJS();
+                    if (this.pendingAction === 'template') this.generateTemplateWithJS();
+                    this.pendingAction = null;
+                },
+
+                switchToPro() {
+                    this.showSandboxWarning = false;
+                    this.showSettings = true;
+                    this.pendingAction = null; // Clear pending action, user needs to set key first
+                },
+
+                // --- AI LOGIC: KNOWLEDGE LIBRARIAN ---
+                async generateKnowledgeRecs() {
+                    if (this.isUsingAI) await this.generateKnowledgeRecsAI();
+                    else this.generateKnowledgeRecsJS();
+                },
+
+                generateKnowledgeRecsJS() {
+                    let recs = "Based on your inputs, we recommend attaching these files:\n\n";
+                    if(this.gem.role.toLowerCase().includes('editor') || this.gem.role.toLowerCase().includes('writer')) {
+                        recs += "1. **Brand Voice Guidelines (PDF):** To ensure tone consistency.\n2. **Style Guide:** For grammar and formatting rules.";
+                    } else if (this.gem.role.toLowerCase().includes('sales')) {
+                        recs += "1. **Product One-Pagers:** For accurate specs.\n2. **Objection Handling Scripts:** To mimic best practices.";
+                    } else {
+                        recs += "1. **Relevant Strategic Docs:** Any strategy decks or briefs.\n2. **Past Examples:** 3-5 examples of 'Good' outputs.";
+                    }
+                    this.gem.knowledgeRecommendation = recs;
+                },
+
+                async generateKnowledgeRecsAI() {
+                    this.isLoading = true;
+                    const prompt = `
+Act as an expert Information Architect. Your goal is to recommend the "Knowledge Base" for a specific AI Agent.
+
+INPUT DATA:
+- Role: ${this.gem.role}
+- Task: ${this.gem.task}
+- Mode: ${this.gem.mode}
+
+INSTRUCTIONS:
+1. Analyze the Role and Task. What specific data does this agent need to avoid hallucinations and perform at an expert level?
+2. Recommend 3-5 specific TYPES of documents the user should upload.
+3. For each recommendation, explain WHY in 5 words or less.
+
+OUTPUT FORMAT (Markdown List):
+* **[Document Type]**: [Why it's needed]
+* **[Document Type]**: [Why it's needed]`;
+
+                    try {
+                        const result = await this.callGemini(prompt, false); 
+                        this.gem.knowledgeRecommendation = result;
+                    } catch (e) {
+                        console.error(e);
+                        this.generateKnowledgeRecsJS();
+                    }
+                    this.isLoading = false;
+                },
+
+                // --- AI / TEMPLATE GENERATION ---
+                // Replaced direct calls with triggerGeneration() wrapper above
+
+                // Branch A: Local Templates
+                generateRoleWithJS() {
+                    const name = this.gem.name.toLowerCase();
+                    let role = "You are an expert AI assistant.";
+                    let task = "Help the user.";
+
+                    if (name.includes('editor') || name.includes('copy')) {
+                        role = "You are a ruthless Senior Editor with 20 years of experience in journalism and B2B SaaS.";
+                        task = "Review content for clarity, tone consistency, and grammatical precision.";
+                    } else if (name.includes('sales')) {
+                        role = "You are a top-performing Sales Enablement Director.";
+                        task = "Create compelling battlecards and objection-handling scripts for the sales team.";
+                    } else {
+                        role = "You are a Senior Product Marketing Manager specializing in strategic messaging.";
+                        task = "Translate complex technical features into clear customer benefits.";
+                    }
+                    this.gem.role = role;
+                    this.gem.task = task;
+                },
+
+                generateTemplateWithJS() {
+                    let engagementRule = "";
+                    if(this.gem.mode === 'Auto-Pilot') engagementRule = "1. ZERO FRICTION: Do not ask clarifying questions. Use best-guess defaults.";
+                    if(this.gem.mode === 'Co-Pilot') engagementRule = "1. CLARIFICATION: Ask max 1 question only if a critical piece of data is missing.";
+                    if(this.gem.mode === 'Interviewer') engagementRule = "1. INTERVIEW MODE: Lead the user through a step-by-step inquiry before generating the output.";
+
+                    const template = `
+[ENGAGEMENT PROTOCOL]
+Current Mode: ${this.gem.mode}
+${engagementRule}
+
+[RESPONSE PROTOCOL]
+Tone: ${this.getTone()}
+Format: ${this.getFormat()}
+
+To ensure consistency, you must structure every response as follows:
+
+## 🎯 Executive Summary
+(Instruction: One sentence summary of the key insight)
+
+## ⚡ Analysis
+(Instruction: Provide 3-5 bullet points analyzing the request)
+* Point 1
+* Point 2
+
+## 📝 Recommendation
+(Instruction: Final recommendation based on the ${this.gem.role} persona)
+
+[END PROTOCOLS]
+                    `;
+                    this.appendInstructions(template);
+                },
+
+                // Branch B: Real AI
+                async generateRoleWithAI() {
+                    this.isLoading = true;
+                    const prompt = `
+Act as an expert AI Architect. Based on the user's input, define the optimal "Identity" for a Marketing AI Agent.
+
+INPUT DATA:
+- Gem Name: ${this.gem.name}
+- Description (Optional): ${this.gem.description || "None"}
+
+INSTRUCTIONS:
+1. Analyze the Name and Description to determine the specific marketing subdomain.
+2. Generate a JSON object containing:
+   - "role": A specific professional title.
+   - "task": A concise mission statement starting with a STRONG VERB.
+
+OUTPUT FORMAT (JSON ONLY):
+{
+  "role": "The specific persona string",
+  "task": "The specific action-oriented task string"
+}`;
+                    
+                    try {
+                        const result = await this.callGemini(prompt, true); 
+                        const cleanResult = result.replace(/```json/g, '').replace(/```/g, '');
+                        const json = JSON.parse(cleanResult);
+                        this.gem.role = json.role;
+                        this.gem.task = json.task;
+                    } catch (e) {
+                        console.error(e);
+                        alert("AI Error. Falling back to templates.");
+                        this.generateRoleWithJS();
+                    }
+                    this.isLoading = false;
+                },
+
+                async generateTemplateWithAI() {
+                    this.isLoading = true;
+                    const prompt = `
+Act as a Systems Architect for AI Agents. Your goal is to create the "Operating Source Code" for a new Gem.
+
+INPUT DATA:
+- Role: ${this.gem.role}
+- Task: ${this.gem.task}
+- Interaction Mode: ${this.gem.mode}
+- Desired Tone: ${this.getTone()}
+- Desired Format: ${this.getFormat()}
+
+INSTRUCTIONS:
+1. Define the "ENGAGEMENT PROTOCOL" based strictly on the 'Interaction Mode':
+   - If Auto-Pilot: Enforce a "Zero-Friction" policy. Forbid clarifying questions. Instruct the AI to use best-guess defaults for missing info.
+   - If Co-Pilot: Allow max 1 clarifying question per turn, but only for critical blockers.
+   - If Interviewer: Instruct the AI to lead a step-by-step inquiry before generating the final asset.
+
+2. Design the "RESPONSE PROTOCOL" (The visual template):
+   - Create a Markdown structure (Headers, Bullets) that suits the ${this.gem.role}.
+   - The response must adhere to the Tone (${this.getTone()}) and Format (${this.getFormat()}).
+
+OUTPUT FORMAT (Return this text block ONLY, ready to copy):
+
+[ENGAGEMENT PROTOCOL]
+Current Mode: [Insert Mode Name]
+1. [Specific Rule #1 based on mode]
+2. [Specific Rule #2 based on mode]
+3. [Specific Rule #3 based on mode]
+
+[RESPONSE PROTOCOL]
+Every output must follow this structure:
+
+## 🎯 [Section 1 Title]
+...
+
+## ⚡ [Section 2 Title]
+...
+
+[END PROTOCOLS]`;
+
+                    try {
+                        const result = await this.callGemini(prompt, true); 
+                        this.appendInstructions(`\n${result}`);
+                    } catch (e) {
+                        alert("AI Error. Falling back to templates.");
+                        this.generateTemplateWithJS();
+                    }
+                    this.isLoading = false;
+                },
+
+                // API Helper
+                async callGemini(userPrompt, usePersona = true) {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`;
+                    
+                    let systemInstructionText = "";
+                    if (usePersona) {
+                        systemInstructionText = `
+You are the 'Prompt Perfectionist', an expert AI Architect and Product Marketing Manager. Your goal is to translate user intent into precise, high-performance AI agent definitions.
+
+Your Core Protocols:
+1. SPECIFICITY: Always use the 'Role-Task-Context-Format' framework.
+2. INTERPRETATION: If a user input is abstract, interpret it creatively as a marketing concept.
+3. SILENCE: Output ONLY the requested content. No conversational filler.`;
+                    }
+
+                    const payload = {
+                        contents: [{ parts: [{ text: userPrompt }] }]
+                    };
+                    
+                    if (usePersona) {
+                        payload.systemInstruction = { parts: [{ text: systemInstructionText }] };
+                    }
+
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+                    if(data.error) throw new Error(data.error.message);
+                    return data.candidates[0].content.parts[0].text;
+                },
+
+                appendInstructions(text) {
+                    if (!this.gem.instructions.includes('[ENGAGEMENT PROTOCOL]')) {
+                        this.gem.instructions += text;
+                    } else {
+                        const parts = this.gem.instructions.split('[ENGAGEMENT PROTOCOL]');
+                        this.gem.instructions = parts[0] + text;
+                    }
+                },
+
+                nextStep() {
+                    if (this.step === 1 && this.gem.name === '') {
+                        alert("Please name your Gem first!");
+                        return;
+                    }
+                    if (this.step === 2) {
+                        this.generateKnowledgeRecs();
+                    }
+                    if (this.step < 3) this.step++; 
+                },
+                
+                prevStep() {
+                    if (this.step > 1) this.step--;
+                },
+
+                downloadGem() {
+                    const content = `
+📋 GEM BLUEPRINT
+================
+NAME: ${this.gem.name}
+DESCRIPTION: ${this.gem.description}
+MODE: ${this.gem.mode}
+
+1. INSTRUCTIONS (Copy & Paste this into "System Instructions"):
+------------------------------------------------------------
+ROLE: ${this.gem.role}
+TASK: ${this.gem.task}
+
+${this.gem.instructions}
+`;
+                    navigator.clipboard.writeText(content).then(() => {
+                        alert("Gem Blueprint Copied to Clipboard! You can now paste it into Google Gemini.");
+                    });
+                },
+
+                scrollToGuide() {
+                    document.getElementById('deployment-guide').scrollIntoView({ behavior: 'smooth' });
+                }
+            }));
+        });
+    </script>
+    
+    <!-- Alpine.js (Loaded AFTER Logic) -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, h4, h5 { font-family: 'Space Grotesk', sans-serif; }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gem-gradient-text {
+            background: linear-gradient(135deg, #a5b4fc, #67e8f9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .gem-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+
+        [x-cloak] { display: none !important; }
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.5s; }
+        .fade-enter, .fade-leave-to { opacity: 0; }
+        
+        /* Wireframe Styles */
+        .wireframe-box { background: #1e293b; border: 2px dashed #475569; border-radius: 0.5rem; position: relative; }
+        .wireframe-ui { background: #0f172a; border: 1px solid #334155; border-radius: 0.5rem; overflow: hidden; }
+        .wf-sidebar { width: 20%; background: #1e293b; border-right: 1px solid #334155; }
+        .wf-main { flex: 1; background: #0f172a; }
+        .wf-item { height: 8px; background: #334155; border-radius: 4px; margin-bottom: 8px; }
+        .wf-btn { background: #3b82f6; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white selection:bg-cyan-500 selection:text-white" x-data="gemBuilder">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-2">
+                    <i class="fa-regular fa-gem text-cyan-400 text-xl"></i>
+                    <span class="font-bold text-lg tracking-tight">Gem Playbook</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <button @click="document.getElementById('part1').scrollIntoView({behavior: 'smooth'})" class="hover:text-cyan-400 px-3 py-2 rounded-md text-sm font-medium transition">The Concept</button>
+                        <button @click="document.getElementById('part2').scrollIntoView({behavior: 'smooth'})" class="hover:text-cyan-400 px-3 py-2 rounded-md text-sm font-medium transition">Best Practices</button>
+                        <button @click="document.getElementById('part3').scrollIntoView({behavior: 'smooth'})" class="hover:text-cyan-400 px-3 py-2 rounded-md text-sm font-medium transition">Use Cases</button>
+                        <button @click="document.getElementById('wizard').scrollIntoView({behavior: 'smooth'})" class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-full text-sm font-bold transition shadow-lg shadow-cyan-500/30">Build Your Gem</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Part 1: Hero & The Concept -->
+    <section id="part1" class="relative pt-32 pb-20 overflow-hidden">
+        <div class="absolute top-0 left-1/2 w-full -translate-x-1/2 h-full z-0 pointer-events-none opacity-30">
+            <div class="absolute top-20 left-10 w-72 h-72 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
+            <div class="absolute top-20 right-10 w-72 h-72 bg-cyan-600 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800 border border-slate-700 mb-8">
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+                </span>
+                <span class="text-xs font-semibold uppercase tracking-wide text-slate-300">The Modern Marketer's Playbook</span>
+            </div>
+            
+            <h1 class="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+                Stop Chatting. <br/>
+                <span class="gem-gradient-text">Start Engineering.</span>
+            </h1>
+            
+            <p class="mt-4 max-w-2xl mx-auto text-xl text-slate-400">
+                Most marketers use AI like a <strong>generic intern</strong>. <br/>
+                Learn to build <strong>Custom Gems</strong> that act like your best senior specialists.
+            </p>
+
+            <div class="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto" x-data="{ activeSide: 'right' }">
+                <!-- Generalist -->
+                <div @mouseenter="activeSide = 'left'" :class="activeSide === 'left' ? 'border-red-500/50 bg-red-900/10' : 'border-slate-800 bg-slate-800/50'" class="p-8 rounded-2xl border transition-all duration-300 cursor-default">
+                    <div class="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mb-4 mx-auto text-3xl"><i class="fa-solid fa-robot text-slate-400"></i></div>
+                    <h3 class="text-xl font-bold mb-2">The Generalist (Standard AI)</h3>
+                    <ul class="text-left space-y-3 text-slate-400 text-sm mt-4">
+                        <li class="flex items-start gap-2"><i class="fa-solid fa-xmark text-red-500 mt-1"></i> Generic, fluffy marketing copy</li>
+                        <li class="flex items-start gap-2"><i class="fa-solid fa-xmark text-red-500 mt-1"></i> Hallucinates product specs</li>
+                        <li class="flex items-start gap-2"><i class="fa-solid fa-xmark text-red-500 mt-1"></i> Needs 15-minute briefing every time</li>
+                    </ul>
+                </div>
+
+                <!-- Specialist -->
+                <div @mouseenter="activeSide = 'right'" :class="activeSide === 'right' ? 'border-cyan-500/50 bg-cyan-900/10 shadow-lg shadow-cyan-500/20' : 'border-slate-800 bg-slate-800/50'" class="p-8 rounded-2xl border transition-all duration-300 cursor-default">
+                    <div class="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center mb-4 mx-auto text-3xl text-white shadow-lg">💎</div>
+                    <h3 class="text-xl font-bold mb-2 text-cyan-300">The Custom Gem</h3>
+                    <ul class="text-left space-y-3 text-slate-300 text-sm mt-4">
+                        <li class="flex items-start gap-2"><i class="fa-solid fa-check text-cyan-400 mt-1"></i> Knows your Brand Voice perfectly</li>
+                        <li class="flex items-start gap-2"><i class="fa-solid fa-check text-cyan-400 mt-1"></i> Cites your actual PDFs & Data</li>
+                        <li class="flex items-start gap-2"><i class="fa-solid fa-check text-cyan-400 mt-1"></i> One-click expert execution</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <hr class="border-slate-800 max-w-7xl mx-auto">
+
+    <!-- Part 2: Best Practices -->
+    <section id="part2" class="py-20 bg-slate-900" x-data="{ anatomyPart: 'role' }">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">The Anatomy of a Gem</h2>
+                <p class="text-slate-400">A Gem isn't just a prompt. It's a program built from two core components.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                <div class="relative">
+                    <div class="bg-slate-800 rounded-2xl p-8 border border-slate-700 relative overflow-hidden">
+                        <div class="space-y-6 relative z-10">
+                            <div @click="anatomyPart = 'role'" :class="anatomyPart === 'role' ? 'ring-2 ring-cyan-400 bg-slate-700' : 'bg-slate-800 hover:bg-slate-750'" class="p-6 rounded-xl border border-slate-600 cursor-pointer transition-all">
+                                <div class="flex items-center gap-3 mb-2"><i class="fa-solid fa-brain text-cyan-400"></i><h4 class="font-bold text-lg">1. Instructions (The Brain)</h4></div>
+                                <p class="text-sm text-slate-400">Role, Context, Task, Format, Tone.</p>
+                            </div>
+
+                            <div @click="anatomyPart = 'knowledge'" :class="anatomyPart === 'knowledge' ? 'ring-2 ring-purple-400 bg-slate-700' : 'bg-slate-800 hover:bg-slate-750'" class="p-6 rounded-xl border border-slate-600 cursor-pointer transition-all">
+                                <div class="flex items-center gap-3 mb-2"><i class="fa-solid fa-book text-purple-400"></i><h4 class="font-bold text-lg">2. Knowledge (The Library)</h4></div>
+                                <p class="text-sm text-slate-400">PDFs, CSVs, Brand Guidelines, Transcripts.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-8 rounded-2xl min-h-[400px] border-l-4 transition-colors duration-300" :class="anatomyPart === 'knowledge' ? 'border-purple-500' : 'border-cyan-500'">
+                    <template x-if="anatomyPart === 'role'">
+                        <div class="animate-fade-in">
+                            <h3 class="text-2xl font-bold mb-4 text-white">Instructions: The 6-Point Framework</h3>
+                            <p class="mb-6 text-slate-300">To get "Senior Level" output, you must provide the full 6-part context.</p>
+                            <div class="space-y-3">
+                                <div class="flex gap-3"><div class="w-6 h-6 rounded bg-cyan-900 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">1</div><div><span class="font-bold text-white">Role:</span> <span class="text-slate-400 text-sm">"Act as a Senior PMM..."</span></div></div>
+                                <div class="flex gap-3"><div class="w-6 h-6 rounded bg-cyan-900 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">2</div><div><span class="font-bold text-white">Task:</span> <span class="text-slate-400 text-sm">"Analyze this competitor update..."</span></div></div>
+                                <div class="flex gap-3"><div class="w-6 h-6 rounded bg-cyan-900 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">3</div><div><span class="font-bold text-white">Context:</span> <span class="text-slate-400 text-sm">"Our product is B2B SaaS..."</span></div></div>
+                                <div class="flex gap-3"><div class="w-6 h-6 rounded bg-cyan-900 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">4</div><div><span class="font-bold text-white">Audience:</span> <span class="text-slate-400 text-sm">"Write for the C-Suite..."</span></div></div>
+                                <div class="flex gap-3"><div class="w-6 h-6 rounded bg-cyan-900 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">5</div><div><span class="font-bold text-white">Format:</span> <span class="text-slate-400 text-sm">"Output as a markdown table..."</span></div></div>
+                                <div class="flex gap-3"><div class="w-6 h-6 rounded bg-cyan-900 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">6</div><div><span class="font-bold text-white">Tone:</span> <span class="text-slate-400 text-sm">"Professional but urgent..."</span></div></div>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="anatomyPart === 'knowledge'">
+                        <div class="animate-fade-in">
+                            <h3 class="text-2xl font-bold mb-4 text-white">Knowledge: The Truth Source</h3>
+                            <p class="mb-6 text-slate-300">Prevent hallucinations by anchoring the Gem to your files.</p>
+                            <div class="space-y-4">
+                                <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                                    <h5 class="font-bold text-purple-400 mb-1"><i class="fa-solid fa-file-pdf mr-2"></i>What to Upload</h5>
+                                    <p class="text-sm text-slate-400">Brand Voice Guidelines, Product One-Pagers, Competitor Battlecards.</p>
+                                </div>
+                                <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                                    <h5 class="font-bold text-purple-400 mb-1"><i class="fa-solid fa-magnifying-glass mr-2"></i>What if it doesn't exist?</h5>
+                                    <p class="text-sm text-slate-400">Use <strong>Perplexity</strong> or <strong>Deep Research</strong> mode to gather the data first.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Part 3: Use Cases -->
+    <section id="part3" class="py-20 bg-slate-900 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl md:text-4xl font-bold mb-12 text-center">The AI Marketing Team</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Cards -->
+                <div class="gem-card bg-slate-800 p-6 rounded-xl border border-slate-700 transition-all">
+                    <div class="h-12 w-12 bg-pink-900/50 rounded-lg flex items-center justify-center mb-4 text-pink-400 text-xl"><i class="fa-solid fa-gavel"></i></div>
+                    <h3 class="text-xl font-bold text-white mb-2">The Critic</h3>
+                    <p class="text-slate-400 text-sm mb-4">A Gem acting as your specific ICP. Upload copy and ask it to tear it apart.</p>
+                    <div class="text-xs font-mono bg-slate-900 p-2 rounded text-slate-500">Input: LinkedIn Draft -> Output: Feedback</div>
+                </div>
+                <div class="gem-card bg-slate-800 p-6 rounded-xl border border-slate-700 transition-all">
+                    <div class="h-12 w-12 bg-blue-900/50 rounded-lg flex items-center justify-center mb-4 text-blue-400 text-xl"><i class="fa-solid fa-recycle"></i></div>
+                    <h3 class="text-xl font-bold text-white mb-2">The Repurposer</h3>
+                    <p class="text-slate-400 text-sm mb-4">Upload a whitepaper. Get a Twitter thread, LinkedIn post, and Newsletter.</p>
+                    <div class="text-xs font-mono bg-slate-900 p-2 rounded text-slate-500">Input: PDF Report -> Output: Social Bundle</div>
+                </div>
+                <div class="gem-card bg-slate-800 p-6 rounded-xl border border-slate-700 transition-all">
+                    <div class="h-12 w-12 bg-emerald-900/50 rounded-lg flex items-center justify-center mb-4 text-emerald-400 text-xl"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+                    <h3 class="text-xl font-bold text-white mb-2">SEO Strategist</h3>
+                    <p class="text-slate-400 text-sm mb-4">Give it a keyword and competitor URL. It suggests a winning outline.</p>
+                    <div class="text-xs font-mono bg-slate-900 p-2 rounded text-slate-500">Input: Keyword -> Output: Content Brief</div>
+                </div>
+                <div class="gem-card bg-slate-800 p-6 rounded-xl border border-slate-700 transition-all">
+                    <div class="h-12 w-12 bg-purple-900/50 rounded-lg flex items-center justify-center mb-4 text-purple-400 text-xl"><i class="fa-solid fa-envelope-open-text"></i></div>
+                    <h3 class="text-xl font-bold text-white mb-2">Nurture Architect</h3>
+                    <p class="text-slate-400 text-sm mb-4">Feed it "Product Specs" and "Pain Points". It writes a 5-email drip sequence.</p>
+                    <div class="text-xs font-mono bg-slate-900 p-2 rounded text-slate-500">Input: Product Doc -> Output: 5 Emails</div>
+                </div>
+                <div class="gem-card bg-slate-800 p-6 rounded-xl border border-slate-700 transition-all">
+                    <div class="h-12 w-12 bg-orange-900/50 rounded-lg flex items-center justify-center mb-4 text-orange-400 text-xl"><i class="fa-solid fa-swords"></i></div>
+                    <h3 class="text-xl font-bold text-white mb-2">Battlecard Builder</h3>
+                    <p class="text-slate-400 text-sm mb-4">Use Deep Research to gather intel, then feed it to this Gem to format.</p>
+                    <div class="text-xs font-mono bg-slate-900 p-2 rounded text-slate-500">Input: Research Notes -> Output: Table</div>
+                </div>
+                <div class="gem-card bg-slate-800 p-6 rounded-xl border border-slate-700 transition-all border-dashed">
+                    <div class="h-12 w-12 bg-cyan-900/50 rounded-lg flex items-center justify-center mb-4 text-cyan-400 text-xl"><i class="fa-solid fa-pen-nib"></i></div>
+                    <h3 class="text-xl font-bold text-white mb-2">The Content Engine</h3>
+                    <p class="text-slate-400 text-sm mb-4">Your daily writer. Feeds on your Brand Voice to churn out posts.</p>
+                    <div class="text-xs font-mono bg-slate-900 p-2 rounded text-slate-500">Input: Topic Idea -> Output: Full Draft</div>
+                </div>
+            </div>
+
+            <!-- Pro Tip -->
+            <div class="mt-12 max-w-4xl mx-auto">
+                <div class="bg-gradient-to-r from-cyan-900/20 to-blue-900/20 border border-cyan-500/30 rounded-xl p-6 flex items-start gap-4 shadow-lg">
+                    <div class="bg-cyan-500/20 p-3 rounded-full shrink-0"><i class="fa-solid fa-lightbulb text-cyan-400 text-xl"></i></div>
+                    <div>
+                        <h4 class="text-lg font-bold text-white mb-1">Gem Idea Pro-Tip: The "Rule of 3"</h4>
+                        <p class="text-slate-300 text-sm leading-relaxed">
+                            Look for repetitive tasks you do <strong>>3 times a week</strong>. If a task requires 
+                            <span class="text-cyan-400 font-bold">Specific Knowledge</span> and a 
+                            <span class="text-cyan-400 font-bold">Consistent Format</span>, it's a Gem candidate.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Part 4: The Wizard (Interactive Builder) -->
+    <section id="wizard" class="py-24 bg-slate-950 border-t border-slate-800">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-10 flex items-end justify-between">
+                <div>
+                    <h2 class="text-3xl md:text-5xl font-bold text-white">Gem Builder Wizard</h2>
+                    <p class="text-cyan-400 mt-2 font-mono text-sm">v18.0 // Sandbox Warning Enabled</p>
+                </div>
+                <!-- API Settings Button -->
+                <div class="bg-slate-800 rounded-full px-4 py-2 border border-slate-700 flex items-center gap-3 cursor-pointer hover:bg-slate-700 transition" @click="showSettings = !showSettings">
+                    <div class="w-2 h-2 rounded-full" :class="isUsingAI ? 'bg-green-500 shadow-lg shadow-green-500/50' : 'bg-slate-500'"></div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-300" x-text="isUsingAI ? 'Pro Mode Active' : 'Sandbox Mode'"></span>
+                    <i class="fa-solid fa-gear text-slate-400 text-sm"></i>
+                </div>
+            </div>
+
+            <!-- API Key Modal -->
+            <div x-show="showSettings" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" style="display: none;">
+                <div class="bg-slate-900 p-8 rounded-2xl border border-slate-700 max-w-md w-full shadow-2xl relative">
+                    <button @click="showSettings = false" class="absolute top-4 right-4 text-slate-500 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+                    <h3 class="text-xl font-bold text-white mb-4"><i class="fa-solid fa-key text-cyan-400 mr-2"></i> Enable Pro AI Mode</h3>
+                    <p class="text-sm text-slate-400 mb-6">Enter your Google Gemini API Key to enable real-time rewriting and "Prompt Perfectionist" logic. Your key is stored ONLY in your browser.</p>
+                    
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Gemini API Key</label>
+                        <input type="password" x-model="apiKey" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:border-cyan-400 focus:outline-none" placeholder="AIza...">
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-xs text-cyan-500 hover:text-cyan-400 mt-2 inline-block"><i class="fa-solid fa-external-link-alt mr-1"></i> Get a free key here</a>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <button @click="saveKey()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-lg">Save & Activate</button>
+                        <button @click="clearKey()" class="px-4 py-3 text-red-400 hover:text-red-300 font-bold border border-slate-700 rounded-lg">Clear Key</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SANDBOX WARNING MODAL (NEW) -->
+            <div x-show="showSandboxWarning" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md" style="display: none;">
+                <div class="bg-slate-900 p-8 rounded-2xl border border-slate-700 max-w-md w-full shadow-2xl relative animate-fade-in border-t-4 border-t-amber-500">
+                    <div class="mb-6 text-center">
+                        <div class="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fa-solid fa-robot text-3xl text-amber-500"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white mb-2">Wait! You are in Sandbox Mode</h3>
+                        <p class="text-sm text-slate-400 leading-relaxed">
+                            The content generated here is a <strong>generic template</strong> for educational purposes. 
+                            To get a high-quality, custom Gem tailored to your specific input, you need to connect to Gemini AI.
+                        </p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <button @click="switchToPro()" class="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold py-3 rounded-lg transition shadow-lg flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-bolt"></i> Go Full AI
+                        </button>
+                        <button @click="confirmSandbox()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white font-medium py-3 rounded-lg transition">
+                            Just testing this
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- The Builder Application -->
+            <div class="bg-slate-900 rounded-3xl border border-slate-700 overflow-hidden shadow-2xl">
+                
+                <div class="grid grid-cols-1 lg:grid-cols-12 h-full min-h-[800px]">
+                    
+                    <!-- Left Sidebar (Inputs) -->
+                    <div class="lg:col-span-7 p-8 border-r border-slate-700 overflow-y-auto max-h-[800px]">
+                        
+                        <!-- Step Indicators -->
+                        <div class="flex items-center space-x-2 mb-8 text-sm">
+                            <span :class="step >= 1 ? 'text-cyan-400 font-bold' : 'text-slate-600'">1. Identity</span>
+                            <span class="text-slate-700">></span>
+                            <span :class="step >= 2 ? 'text-cyan-400 font-bold' : 'text-slate-600'">2. Architecture</span>
+                            <span class="text-slate-700">></span>
+                            <span :class="step >= 3 ? 'text-cyan-400 font-bold' : 'text-slate-600'">3. Knowledge & Deploy</span>
+                        </div>
+
+                        <!-- Step 1: Identity -->
+                        <div x-show="step === 1" x-transition.opacity>
+                            <h3 class="text-2xl font-bold mb-6 text-white">Define the Persona</h3>
+                            
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-slate-400 text-sm mb-2 font-bold">Gem Name</label>
+                                    <input type="text" x-model="gem.name" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:border-cyan-400 focus:outline-none transition" placeholder="e.g. The Content Engine">
+                                </div>
+
+                                <!-- Description Field -->
+                                <div>
+                                    <label class="block text-slate-400 text-sm mb-2 font-bold">Description</label>
+                                    <textarea x-model="gem.description" rows="2" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:border-cyan-400 focus:outline-none transition" placeholder="e.g. A bot that writes high-converting sales emails for B2B tech leads."></textarea>
+                                </div>
+
+                                <!-- Interaction Mode Dropdown (Kept in Step 1 as requested) -->
+                                <div>
+                                    <label class="block text-slate-400 text-sm mb-2 font-bold">Interaction Style</label>
+                                    <select x-model="gem.mode" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:border-cyan-400 focus:outline-none transition">
+                                        <option value="Auto-Pilot">🚀 Auto-Pilot (The Doer - Zero Friction)</option>
+                                        <option value="Co-Pilot">🤝 Co-Pilot (The Partner - Asks Clarifying Qs)</option>
+                                        <option value="Interviewer">🧠 The Interviewer (The Coach - Guided Inquiry)</option>
+                                    </select>
+                                    <p class="text-xs text-slate-500 mt-2">
+                                        <span x-show="gem.mode === 'Auto-Pilot'">Best for: Code generation, copy variations, routine tasks.</span>
+                                        <span x-show="gem.mode === 'Co-Pilot'">Best for: Strategic planning, drafting complex docs.</span>
+                                        <span x-show="gem.mode === 'Interviewer'">Best for: Brainstorming, unblocking creativity, therapy.</span>
+                                    </p>
+                                </div>
+
+                                <!-- AI RECOMMENDATION FEATURE -->
+                                <div class="bg-indigo-900/20 border border-indigo-500/30 rounded-lg p-4 mt-4" x-show="gem.name.length > 2">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-bold text-indigo-400 uppercase tracking-wide">
+                                            <i class="fa-solid fa-sparkles mr-1"></i> 
+                                            <span x-text="isUsingAI ? 'Gemini AI Architect' : 'Auto-Complete'"></span>
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-slate-400 mb-3">Want a role based on that name?</p>
+                                    <button @click="triggerGeneration('role')" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded transition w-full flex justify-center items-center gap-2">
+                                        <i x-show="isLoading" class="fa-solid fa-circle-notch animate-spin"></i>
+                                        <span x-text="isLoading ? 'Architecting...' : '✨ Generate Role & Task'"></span>
+                                    </button>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-slate-400 text-sm mb-2 font-bold">Role Definition (Who is it?)</label>
+                                    <textarea x-model="gem.role" rows="3" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:border-cyan-400 focus:outline-none transition" placeholder="You are a senior Product Marketing Manager with 15 years of experience..."></textarea>
+                                </div>
+
+                                <div>
+                                    <label class="block text-slate-400 text-sm mb-2 font-bold">Primary Task</label>
+                                    <input type="text" x-model="gem.task" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:border-cyan-400 focus:outline-none transition" placeholder="Analyze competitor announcements...">
+                                </div>
+
+                                <button @click="nextStep()" 
+                                    :disabled="gem.name === ''"
+                                    :class="gem.name === '' ? 'opacity-50 cursor-not-allowed bg-slate-700' : 'bg-cyan-600 hover:bg-cyan-500'"
+                                    class="w-full text-white font-bold py-3 rounded-lg mt-4 transition flex justify-center items-center">
+                                    <span>Next: Define Protocols</span>
+                                    <i class="fa-solid fa-arrow-right ml-2"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Architecture (Protocols) -->
+                        <div x-show="step === 2" x-transition.opacity>
+                            <h3 class="text-2xl font-bold mb-2 text-white">Define Protocols</h3>
+                            <p class="text-slate-400 text-sm mb-6">Architect how your Gem behaves and responds.</p>
+                            
+                            <!-- AI Feature: Automated Protocol Generator -->
+                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 mb-6">
+                                <div class="flex justify-between items-center mb-3">
+                                    <label class="text-cyan-400 text-xs font-bold uppercase tracking-wider"><i class="fa-solid fa-compass-drafting mr-1"></i> Structure & Behavior Architect</label>
+                                </div>
+                                
+                                <!-- Re-added Tone & Format Dropdowns here (Step 2) -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-500 mb-1 block">Tone</label>
+                                        <select x-model="generator.tone" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-cyan-500">
+                                            <option value="Professional">Professional</option>
+                                            <option value="Witty/Edgy">Witty/Edgy</option>
+                                            <option value="Direct/Concise">Direct/Concise</option>
+                                            <option value="Empathetic">Empathetic</option>
+                                            <option value="Urgent/Sales-y">Urgent/Sales-y</option>
+                                            <option value="Data-Driven">Data-Driven</option>
+                                            <option value="Custom">✨ Write my own...</option>
+                                        </select>
+                                        <input x-show="generator.tone === 'Custom'" x-model="generator.customTone" type="text" class="w-full mt-2 bg-slate-800 border border-slate-600 rounded p-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" placeholder="e.g. Sarcastic but helpful">
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-500 mb-1 block">Format</label>
+                                        <select x-model="generator.format" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white focus:outline-none focus:border-cyan-500">
+                                            <option value="LinkedIn Post">LinkedIn Post</option>
+                                            <option value="Sales Email">Sales Email</option>
+                                            <option value="Comparison Table">Comparison Table</option>
+                                            <option value="Blog Post">Blog Post</option>
+                                            <option value="Executive Summary">Executive Summary</option>
+                                            <option value="JSON Data">JSON Data</option>
+                                            <option value="Custom">✨ Write my own...</option>
+                                        </select>
+                                        <input x-show="generator.format === 'Custom'" x-model="generator.customFormat" type="text" class="w-full mt-2 bg-slate-800 border border-slate-600 rounded p-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" placeholder="e.g. Python Script">
+                                    </div>
+                                </div>
+
+                                <button @click="triggerGeneration('template')" class="w-full text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded transition flex justify-center items-center gap-2">
+                                     <i x-show="isLoading" class="fa-solid fa-circle-notch animate-spin"></i>
+                                     <span x-text="isLoading ? 'Architecting...' : '🏗️ Generate Operating Protocols'"></span>
+                                </button>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-slate-400 text-sm mb-2 font-bold">System Instructions</label>
+                                    <textarea x-model="gem.instructions" rows="12" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:border-cyan-400 focus:outline-none font-mono text-xs leading-relaxed" placeholder="1. Start by asking context... 2. Use bullet points..."></textarea>
+                                </div>
+                                
+                                <div class="flex gap-3">
+                                    <button @click="prevStep()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg transition">Back</button>
+                                    <button @click="nextStep()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-lg transition">Next: Knowledge Strategy</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Knowledge Strategy (The Recommendations) -->
+                        <div x-show="step === 3" x-transition.opacity>
+                            <h3 class="text-2xl font-bold mb-2 text-white">Knowledge Strategy</h3>
+                            <p class="text-slate-400 text-sm mb-6">AI-generated recommendations for what files to upload.</p>
+
+                            <!-- AI Feature: Knowledge Librarian -->
+                            <div class="bg-purple-900/20 border border-purple-500/30 p-6 rounded-xl mb-8">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-8 h-8 rounded-full bg-purple-900 flex items-center justify-center">
+                                        <i class="fa-solid fa-book-open text-purple-400"></i>
+                                    </div>
+                                    <h4 class="font-bold text-white">The Knowledge Librarian Suggests:</h4>
+                                </div>
+                                
+                                <div class="prose prose-invert prose-sm max-w-none text-slate-300">
+                                    <!-- Dynamic Recommendations -->
+                                    <template x-if="isLoading">
+                                        <div class="flex items-center gap-2 text-purple-400 animate-pulse">
+                                            <i class="fa-solid fa-circle-notch animate-spin"></i> Analyzing Gem Architecture...
+                                        </div>
+                                    </template>
+                                    <div x-html="gem.knowledgeRecommendation ? marked.parse(gem.knowledgeRecommendation) : 'Generating recommendations...'"></div>
+                                </div>
+                            </div>
+
+                            <!-- DEPLOY SECTION -->
+                            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 mt-8">
+                                <h4 class="font-bold text-white mb-2 text-lg">Ready to Build?</h4>
+                                <p class="text-sm text-slate-400 mb-6">Your Gem Blueprint is ready. Copy it and paste it into Google Gemini.</p>
+                                
+                                <div class="flex gap-3">
+                                    <button @click="prevStep()" class="w-1/3 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg transition">Back</button>
+                                    
+                                    <!-- NEW: Deployment Guide Button (Scrolls Down) -->
+                                    <button @click="scrollToGuide()" class="w-1/3 bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 rounded-lg transition flex items-center justify-center gap-2">
+                                        <i class="fa-solid fa-graduation-cap"></i> Guide
+                                    </button>
+
+                                    <button @click="downloadGem()" class="w-1/3 bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg transition flex items-center justify-center gap-2 shadow-lg shadow-green-900/20">
+                                        <i class="fa-solid fa-copy"></i> Copy Blueprint
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Right Sidebar (Live Preview) -->
+                    <div class="lg:col-span-5 bg-slate-800 p-8 flex flex-col border-l border-slate-700">
+                        <h4 class="text-slate-400 uppercase text-xs font-bold tracking-widest mb-4">Gem Configuration Preview</h4>
+                        
+                        <div class="flex-1 bg-slate-900 rounded-xl p-6 border border-slate-700 font-mono text-xs text-slate-300 overflow-y-auto space-y-4 shadow-inner">
+                            <div>
+                                <span class="text-cyan-500 font-bold">// GEM IDENTITY</span><br>
+                                <span class="text-purple-400">Name:</span> <span x-text="gem.name || 'Untitled Gem'"></span><br>
+                                <span class="text-purple-400">Role:</span> <span x-text="gem.role || '...'"></span><br>
+                                <span class="text-purple-400">Task:</span> <span x-text="gem.task || '...'"></span><br>
+                                <span class="text-purple-400">Mode:</span> <span x-text="gem.mode || '...'"></span>
+                            </div>
+                            
+                            <div class="border-t border-slate-700 pt-4">
+                                <span class="text-cyan-500 font-bold">// INSTRUCTIONS</span><br>
+                                <div class="whitespace-pre-wrap text-slate-400 mt-1" x-text="gem.instructions || '// Instructions will appear here...'"></div>
+                            </div>
+
+                            <div class="border-t border-slate-700 pt-4">
+                                <span class="text-cyan-500 font-bold">// KNOWLEDGE STRATEGY</span><br>
+                                <div class="whitespace-pre-wrap text-emerald-400 mt-1" x-text="gem.knowledgeRecommendation || '// Recommendations pending...'"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- NEW PERMANENT SECTION: Deployment Guide (CSS Wireframes) -->
+    <section id="deployment-guide" class="py-24 bg-slate-950 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4 text-white">How to Deploy Your Gem</h2>
+                <p class="text-slate-400">Follow these 4 steps to bring your new agent to life in Google Gemini.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                
+                <!-- Step 1 -->
+                <div class="space-y-4">
+                    <div class="wireframe-box h-48 flex items-center justify-center p-4">
+                        <div class="wireframe-ui w-full h-full flex relative">
+                            <div class="wf-sidebar flex flex-col items-center pt-4 gap-2">
+                                <div class="w-6 h-6 rounded bg-slate-600"></div>
+                                <div class="w-6 h-6 rounded bg-slate-600"></div>
+                                <div class="w-8 h-8 rounded bg-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-500/50"><i class="fa-regular fa-gem text-white text-xs"></i></div>
+                                <div class="w-6 h-6 rounded bg-slate-600"></div>
+                            </div>
+                            <div class="wf-main p-2">
+                                <div class="wf-item w-3/4"></div>
+                                <div class="wf-item w-1/2"></div>
+                            </div>
+                            <!-- Cursor -->
+                            <div class="absolute left-8 top-16 text-white drop-shadow-md animate-bounce"><i class="fa-solid fa-arrow-pointer fa-rotate-270"></i></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white mb-1"><span class="text-cyan-400">1.</span> Access Gem Manager</h4>
+                        <p class="text-xs text-slate-400">Go to gemini.google.com. Click the <strong>Gem Manager</strong> icon in the left sidebar.</p>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="space-y-4">
+                    <div class="wireframe-box h-48 flex items-center justify-center p-4">
+                        <div class="wireframe-ui w-full h-full flex flex-col p-4 relative">
+                            <div class="flex justify-between mb-4">
+                                <div class="h-4 w-20 bg-slate-700 rounded"></div>
+                                <div class="h-8 w-24 bg-cyan-600 rounded flex items-center justify-center text-[8px] text-white font-bold">NEW GEM</div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="h-16 bg-slate-800 rounded"></div>
+                                <div class="h-16 bg-slate-800 rounded"></div>
+                                <div class="h-16 bg-slate-800 rounded"></div>
+                            </div>
+                            <!-- Cursor -->
+                            <div class="absolute right-8 top-6 text-white drop-shadow-md animate-bounce"><i class="fa-solid fa-arrow-pointer"></i></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white mb-1"><span class="text-cyan-400">2.</span> Create New</h4>
+                        <p class="text-xs text-slate-400">Click the <strong>"New Gem"</strong> button to open the editor.</p>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="space-y-4">
+                    <div class="wireframe-box h-48 flex items-center justify-center p-4">
+                        <div class="wireframe-ui w-full h-full flex p-2 gap-2 relative">
+                            <div class="w-1/2 bg-slate-800 rounded p-2 flex flex-col gap-1">
+                                <div class="h-3 w-12 bg-slate-600 rounded mb-1"></div>
+                                <div class="flex-1 bg-slate-900 rounded border border-cyan-500/50 flex items-center justify-center">
+                                    <i class="fa-solid fa-paste text-cyan-400"></i>
+                                </div>
+                            </div>
+                            <div class="w-1/2 bg-slate-800 rounded"></div>
+                            <!-- Cursor -->
+                            <div class="absolute left-10 top-12 text-white drop-shadow-md animate-bounce"><i class="fa-solid fa-arrow-pointer"></i></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white mb-1"><span class="text-cyan-400">3.</span> Paste Blueprint</h4>
+                        <p class="text-xs text-slate-400">Paste the text you copied from this wizard into the <strong>"Instructions"</strong> box.</p>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="space-y-4">
+                    <div class="wireframe-box h-48 flex items-center justify-center p-4">
+                        <div class="wireframe-ui w-full h-full flex flex-col p-2 gap-2 relative">
+                            <div class="h-4 w-1/3 bg-slate-700 rounded"></div>
+                            <div class="h-8 w-full bg-slate-800 rounded border border-dashed border-slate-600 flex items-center justify-center text-[8px] text-slate-400">
+                                <i class="fa-solid fa-plus mr-1"></i> Add files
+                            </div>
+                            <div class="flex-1 bg-slate-900 rounded"></div>
+                            <!-- Cursor -->
+                            <div class="absolute center top-10 text-white drop-shadow-md animate-bounce"><i class="fa-solid fa-arrow-pointer"></i></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white mb-1"><span class="text-cyan-400">4.</span> Add Knowledge</h4>
+                        <p class="text-xs text-slate-400">Click <strong>"Add files"</strong> and upload the documents recommended by the Librarian.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 py-10 border-t border-slate-800 text-center">
+        <p class="text-slate-500 text-sm">Marketing Gem Playbook & Builder | Created by Leor Markose</p>
+    </footer>
+
+    <!-- Markdown Parser for Recommendations -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+</body>
+</html>
