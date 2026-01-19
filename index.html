@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Ultimate Marketing Gem Playbook</title>
+    <title>AI Team Builder</title>
+
+    <!-- Dynamic Favicon (Cyan Gear) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%2322d3ee' d='M495.9 166.6c3.2 8.7 .5 18.4-6.4 24.6l-43.3 39.4c1.1 8.3 1.7 16.8 1.7 25.4s-.6 17.1-1.7 25.4l43.3 39.4c6.9 6.2 9.6 15.9 6.4 24.6c-4.4 11.9-9.7 23.3-15.8 34.3l-4.7 8.1c-6.6 11-14 21.4-22.1 31.2c-5.9 7.2-15.7 9.6-24.5 6.8l-55.7-17.7c-13.4 10.3-28.2 18.9-44 25.4l-12.5 57.1c-2 9.1-9 16.3-18.2 17.8c-13.8 2.3-28 3.5-42.5 3.5s-28.7-1.2-42.5-3.5c-9.2-1.5-16.2-8.7-18.2-17.8l-12.5-57.1c-15.8-6.5-30.6-15.1-44-25.4L83.1 425.9c-8.8 2.8-18.6 .3-24.5-6.8c-8.1-9.8-15.5-20.2-22.1-31.2l-4.7-8.1c-6.1-11-11.4-22.4-15.8-34.3c-3.2-8.7-.5-18.4 6.4-24.6l43.3-39.4C64.6 273.1 64 264.6 64 256s.6-17.1 1.7-25.4L22.4 191.2c-6.9-6.2-9.6-15.9-6.4-24.6c4.4-11.9 9.7-23.3 15.8-34.3l4.7-8.1c6.6-11 14-21.4 22.1-31.2c5.9-7.2 15.7-9.6 24.5-6.8l55.7 17.7c13.4-10.3 28.2-18.9 44-25.4l12.5-57.1c2-9.1 9-16.3 18.2-17.8C227.3 1.2 241.5 0 256 0s28.7 1.2 42.5 3.5c9.2 1.5 16.2 8.7 18.2 17.8l12.5 57.1c15.8 6.5 30.6 15.1 44 25.4l55.7-17.7c8.8-2.8 18.6-.3 24.5 6.8c8.1 9.8 15.5 20.2 22.1 31.2l4.7 8.1c6.1 11 11.4 22.4 15.8 34.3zM256 336a80 80 0 1 0 0-160 80 80 0 1 0 0 160z'/%3E%3C/svg%3E">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -51,7 +54,7 @@
                 gapMessage: '',
 
                 init() {
-                    console.log("Gem Wizard v20 Initialized");
+                    console.log("AI Team Builder Initialized");
                     const savedKey = localStorage.getItem('gemini_api_key');
                     if (savedKey) {
                         this.apiKey = savedKey;
@@ -472,8 +475,8 @@ ${this.gem.instructions}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center gap-2">
-                    <i class="fa-regular fa-gem text-cyan-400 text-xl"></i>
-                    <span class="font-bold text-lg tracking-tight">Gem Playbook</span>
+                    <i class="fa-solid fa-users-gear text-cyan-400 text-xl"></i>
+                    <span class="font-bold text-lg tracking-tight">AI Team Builder</span>
                 </div>
                 <div class="hidden md:block">
                     <div class="ml-10 flex items-baseline space-x-4">
@@ -494,33 +497,49 @@ ${this.gem.instructions}
             <div class="absolute top-20 right-10 w-72 h-72 bg-cyan-600 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
         </div>
 
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800 border border-slate-700 mb-8">
-                <span class="relative flex h-3 w-3">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
-                </span>
-                <span class="text-xs font-semibold uppercase tracking-wide text-slate-300">The Modern Marketer's Playbook</span>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                
+                <!-- Left: Text Content -->
+                <div class="text-left">
+                    <h1 class="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+                        Stop Chatting. <br/>
+                        <span class="gem-gradient-text">Start Engineering.</span>
+                    </h1>
+                    
+                    <p class="mt-6 max-w-lg text-xl text-slate-400 leading-relaxed">
+                        Most marketers use AI like a <span class="text-slate-200 border-b border-slate-500">generic intern</span>.<br/>
+                        Learn to build a team of <span class="text-cyan-400 font-bold">Custom Gems</span> that act like your best senior specialists.
+                    </p>
+
+                    <div class="mt-10">
+                        <button @click="document.getElementById('wizard').scrollIntoView({behavior: 'smooth'})" class="bg-white text-slate-900 hover:bg-cyan-50 font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:-translate-y-1 flex items-center gap-2">
+                            <i class="fa-solid fa-screwdriver-wrench text-cyan-600"></i> Start Building
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Video -->
+                <div>
+                    <div class="rounded-2xl overflow-hidden shadow-2xl border border-slate-700 bg-slate-800 relative z-10">
+                        <div style="padding:56.25% 0 0 0;position:relative;">
+                            <iframe src="https://player.vimeo.com/video/1156028853?badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479&amp;autoplay=1&amp;muted=1&amp;loop=1&amp;controls=0&amp;title=0&amp;byline=0&amp;portrait=0" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="Gem Playbook Hero Vid"></iframe>
+                        </div>
+                        <script src="https://player.vimeo.com/api/player.js"></script>
+                    </div>
+                </div>
+
             </div>
-            
-            <h1 class="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-                Stop Chatting. <br/>
-                <span class="gem-gradient-text">Start Engineering.</span>
-            </h1>
-            
-            <p class="mt-4 max-w-2xl mx-auto text-xl text-slate-400">
-                Designed for <strong>Google Gemini</strong>, but this 6-Part Framework works perfectly for <br/>
-                <strong>ChatGPT Custom GPTs</strong> and <strong>Claude Projects</strong> too.
-            </p>
+
         </div>
     </section>
 
-    <!-- Part 1.5: The Transformation (Moved here as requested) -->
+    <!-- Part 1.5: The Transformation -->
     <section class="py-16 bg-slate-950 border-t border-slate-800 relative">
         <div class="max-w-5xl mx-auto px-4 text-center">
             <h2 class="text-3xl md:text-4xl font-bold mb-12 leading-tight">
-                Most marketers use AI like a <span class="text-slate-400 border-b-2 border-slate-600">generic intern</span>. <br/>
-                Learn to build <span class="text-cyan-400 border-b-2 border-cyan-500">Custom Gems</span> that act like your best senior specialists.
+                GenAI for Marketing Doesn't Have to be Frustrating
             </h2>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8" x-data="{ activeSide: 'right' }">
@@ -561,7 +580,7 @@ ${this.gem.instructions}
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
                 <div class="relative">
-                    <div class="bg-slate-800 rounded-2xl p-8 border border-slate-700 relative overflow-hidden">
+                    <div class="bg-slate-800 rounded-2xl p-8 border border-slate-700 relative overflow-hidden mb-4">
                         <div class="space-y-6 relative z-10">
                             <div @click="anatomyPart = 'role'" :class="anatomyPart === 'role' ? 'ring-2 ring-cyan-400 bg-slate-700' : 'bg-slate-800 hover:bg-slate-750'" class="p-6 rounded-xl border border-slate-600 cursor-pointer transition-all">
                                 <div class="flex items-center gap-3 mb-2"><i class="fa-solid fa-brain text-cyan-400"></i><h4 class="font-bold text-lg">1. Instructions (The Brain)</h4></div>
@@ -573,6 +592,10 @@ ${this.gem.instructions}
                                 <p class="text-sm text-slate-400">PDFs, CSVs, Brand Guidelines, Transcripts.</p>
                             </div>
                         </div>
+                    </div>
+                    <!-- Framework Context Note -->
+                    <div class="bg-slate-900/50 border border-slate-800 p-4 rounded-lg text-xs text-slate-400 text-center italic">
+                        Designed for <strong>Google Gemini</strong>, but this 6-Part Framework works perfectly for <strong>ChatGPT Custom GPTs</strong> and <strong>Claude Projects</strong> too.
                     </div>
                 </div>
 
@@ -634,7 +657,7 @@ ${this.gem.instructions}
                 <div class="gem-card bg-slate-800 p-6 rounded-xl border border-slate-700 transition-all">
                     <div class="h-12 w-12 bg-emerald-900/50 rounded-lg flex items-center justify-center mb-4 text-emerald-400 text-xl"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
                     <h3 class="text-xl font-bold text-white mb-2">SEO Strategist</h3>
-                    <p class="text-slate-400 text-sm mb-4">Give it a keyword and competitor URL. It suggests a winning outline.</p>
+                    <p class="text-slate-400 text-sm mb-4">Give it a keyword and competitor URL. It suggests a outline.</p>
                     <div class="text-xs font-mono bg-slate-900 p-2 rounded text-slate-500">Input: Keyword -> Output: Content Brief</div>
                 </div>
                 <div class="gem-card bg-slate-800 p-6 rounded-xl border border-slate-700 transition-all">
@@ -674,13 +697,106 @@ ${this.gem.instructions}
         </div>
     </section>
 
+    <!-- Part 3.5: Featured Gem (The Example) -->
+    <section class="py-20 bg-slate-950 relative border-t border-slate-800">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-10 text-center">
+                <span class="text-indigo-400 text-xs font-bold uppercase tracking-widest">Featured Example</span>
+                <h2 class="text-3xl md:text-4xl font-bold text-white mt-2">The Prompt Perfectionist</h2>
+                <p class="text-slate-400 mt-2">A real-world example of a high-utility Gem.</p>
+            </div>
+
+            <div class="bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden shadow-2xl flex flex-col md:flex-row">
+                <!-- Left: Identity -->
+                <div class="p-8 md:w-1/3 bg-slate-800/50 border-r border-slate-700 flex flex-col justify-center text-center md:text-left">
+                    <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-3xl text-white shadow-lg mb-6 mx-auto md:mx-0">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-2">Prompt Perfectionist</h3>
+                    <p class="text-sm text-slate-400 mb-6">Expert Prompt Engineer</p>
+                    <div class="space-y-3 text-left">
+                        <div class="flex items-center gap-3 text-sm text-slate-300">
+                            <i class="fa-solid fa-bullseye text-indigo-400 w-5"></i>
+                            <span>Optimizes vague inputs</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm text-slate-300">
+                            <i class="fa-solid fa-comments text-indigo-400 w-5"></i>
+                            <span>Asks clarifying questions</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm text-slate-300">
+                            <i class="fa-solid fa-code text-indigo-400 w-5"></i>
+                            <span>Outputs ready-to-use prompts</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Anatomy -->
+                <div class="p-8 md:w-2/3 bg-slate-900/50">
+                    <div class="space-y-6">
+                        <!-- Instructions Block -->
+                        <div>
+                            <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2"><i class="fa-solid fa-brain mr-2"></i> Instructions</h4>
+                            <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 font-mono text-xs text-slate-300 leading-relaxed h-48 overflow-y-auto custom-scrollbar">
+                                <strong>Core Function:</strong> This Gem is designed to understand your needs and craft the perfect, ready-to-use prompt for Gemini. Its goal is to help you get the best possible results from Gemini with minimal effort.<br><br>
+                                
+                                <strong>How I Work:</strong><br>
+                                1. Understanding Your Goal: First, I'll focus on truly understanding what you're trying to achieve. Don't hesitate to tell me the specifics of your desired output! The more detail you give me, the better I can tailor the prompt.<br>
+                                2. Clarification is Key: If anything is unclear about your request, I'll ask you some friendly questions. This helps me ensure the prompt I create is exactly what you need. My aim is to avoid any guesswork and get it right the first time!<br>
+                                3. Crafting the "Perfect Prompt": Based on your input and my understanding of effective prompt engineering, I will generate a "Perfect Prompt." This prompt will be designed for you to directly copy and paste into a new chat with Gemini. It will be clear, concise, and structured to guide Gemini effectively.<br><br>
+                                
+                                <strong>What Makes a Prompt "Perfect" (My Guiding Principles):</strong><br>
+                                - Simplicity & Clarity: Prompts should be easy to understand. Avoid overly complex language.<br>
+                                - Specificity: The more specific the prompt, the better the output. This includes defining the desired format, style, tone, and length.<br>
+                                - Examples (Few-Shot Learning): When appropriate, providing examples within the prompt is a powerful way to guide Gemini. Examples should be relevant, high-quality, and diverse.<br>
+                                - Instructions over Constraints: Tell Gemini what to do, rather than what to avoid. Constraints should be used mainly for safety or very specific requirements.<br>
+                                - Action Verbs: Use clear action verbs to describe the desired task (e.g., Generate, Describe, Summarize, Analyze).<br>
+                                - Context is King: If relevant, providing context (like a role for Gemini to adopt or background information) can significantly improve the output.<br>
+                                - Output Format Consideration: I'll consider if a structured output like JSON would be beneficial, especially for tasks involving data extraction or organization, as this can improve accuracy and reduce hallucinations.<br><br>
+                                
+                                <strong>My Promise:</strong> I'm here to help you harness the full power of Gemini by creating prompts that are precisely engineered for your success! Let's get started. What kind of prompt can I create for you today?
+                            </div>
+                        </div>
+
+                        <!-- Knowledge Block -->
+                        <div>
+                            <h4 class="text-xs font-bold text-purple-400 uppercase tracking-widest mb-2"><i class="fa-solid fa-book mr-2"></i> Knowledge</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="bg-slate-800 text-slate-300 text-xs px-3 py-1.5 rounded border border-slate-700 flex items-center gap-2">
+                                    <i class="fa-regular fa-file-pdf text-red-400"></i> Best Practices for Formatting Lyrics for a Suno Song.pdf
+                                </span>
+                                <span class="bg-slate-800 text-slate-300 text-xs px-3 py-1.5 rounded border border-slate-700 flex items-center gap-2">
+                                    <i class="fa-regular fa-file-pdf text-red-400"></i> Best Ways to Use Gemini_s Deep Research_ Prompting.pdf
+                                </span>
+                                <span class="bg-slate-800 text-slate-300 text-xs px-3 py-1.5 rounded border border-slate-700 flex items-center gap-2">
+                                    <i class="fa-regular fa-file-lines text-blue-400"></i> Effective Prompt Writing- Dos and Don'ts.rtf
+                                </span>
+                                <span class="bg-slate-800 text-slate-300 text-xs px-3 py-1.5 rounded border border-slate-700 flex items-center gap-2">
+                                    <i class="fa-regular fa-file-pdf text-red-400"></i> Google's Guide to Prompt Engineering.pdf
+                                </span>
+                                <span class="bg-slate-800 text-slate-300 text-xs px-3 py-1.5 rounded border border-slate-700 flex items-center gap-2">
+                                    <i class="fa-regular fa-file-lines text-blue-400"></i> Guide to Effective Content Writing Prompts.rtf
+                                </span>
+                                <span class="bg-slate-800 text-slate-300 text-xs px-3 py-1.5 rounded border border-slate-700 flex items-center gap-2">
+                                    <i class="fa-regular fa-file-lines text-blue-400"></i> Guiding Gemini_ Effective Prompt Engineering.rtf
+                                </span>
+                                <span class="bg-slate-800 text-slate-300 text-xs px-3 py-1.5 rounded border border-slate-700 flex items-center gap-2">
+                                    <i class="fa-regular fa-file-lines text-blue-400"></i> Prompting Gemini for Creative Thought.rtf
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Part 4: The Wizard (Interactive Builder) -->
     <section id="wizard" class="py-24 bg-slate-950 border-t border-slate-800">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="mb-10 flex items-end justify-between">
                 <div>
                     <h2 class="text-3xl md:text-5xl font-bold text-white">Gem Builder Wizard</h2>
-                    <p class="text-cyan-400 mt-2 font-mono text-sm">v20.0 // Ready to Build</p>
+                    <p class="text-cyan-400 mt-2 font-mono text-sm">Ready to Build</p>
                 </div>
                 <!-- API Settings Button -->
                 <div class="bg-slate-800 rounded-full px-4 py-2 border border-slate-700 flex items-center gap-3 cursor-pointer hover:bg-slate-700 transition" @click="showSettings = !showSettings">
